@@ -3,6 +3,7 @@ package pharmacie.dao;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ActiveProfiles;
 import pharmacie.entity.*;
 
 import java.time.LocalDate;
@@ -12,7 +13,11 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
+@ActiveProfiles("test")
 public class RepositoryCustomMethodsTest {
+
+
+
 
     @Autowired
     private CategorieRepository categorieRepository;
@@ -21,15 +26,15 @@ public class RepositoryCustomMethodsTest {
 
 
     @Test // Ce test se base uniquement sur les données définies dans data.sql
-    public void testMedicamentCustomMethods() {    
+    public void testMedicamentCustomMethods() {
         Medicament indisponible = medicamentRepository.findByNom("Lévofloxacine 500mg").orElseThrow();
         Medicament disponible   = medicamentRepository.findByNom("Doliprane Effervescent 1g").orElseThrow();
-    
+
         // Trouve tous les médicaments disponibles
         List<Medicament> disponibles = medicamentRepository.findByIndisponibleFalse();
 
         assertTrue(disponibles.contains(disponible));
-        assertFalse(disponibles.contains(indisponible));        
+        assertFalse(disponibles.contains(indisponible));
         assertFalse(disponibles.isEmpty());
     }
 
@@ -56,4 +61,27 @@ public class RepositoryCustomMethodsTest {
     }
 
 
+    @Autowired
+    private CommandeRepository commandeRepository;
+    @Autowired
+    private DispensaireRepository dispensaireRepository;
+
+    @Test
+    public void testCommandeCustomMethods() {
+        // Test basé sur data.sql
+        // On cherche les commandes après le 1er Février 2025 (devrait trouver la commande 2, mais pas la 1)
+        List<Commande> commandesRecentes = commandeRepository.findBySaisieleAfter(LocalDate.of(2025, 2, 1));
+
+        assertFalse(commandesRecentes.isEmpty());
+        assertEquals(1, commandesRecentes.size());
+        assertEquals("Marseille", commandesRecentes.get(0).getAdresseLivraison().getVille());
+    }
+
+    @Test
+    public void testDispensaireCustomMethods() {
+        // Test findByAdresseVille
+        List<Dispensaire> dispensairesParis = dispensaireRepository.findByAdresseVille("Paris");
+        assertEquals(1, dispensairesParis.size());
+        assertEquals("Dispensaire du Centre", dispensairesParis.get(0).getNom());
+    }
 }

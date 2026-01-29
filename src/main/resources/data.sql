@@ -31,3 +31,23 @@ INSERT INTO MEDICAMENT (NOM, CATEGORIE_CODE, QUANTITE_PAR_UNITE, PRIX_UNITAIRE, 
 INSERT INTO MEDICAMENT (NOM, CATEGORIE_CODE, QUANTITE_PAR_UNITE, PRIX_UNITAIRE, UNITES_EN_STOCK, UNITES_COMMANDEES, NIVEAU_DE_REAPPRO, INDISPONIBLE, imageURL) VALUES
 ('Lévofloxacine 500mg', 3, 'Boîte de 7 comprimés', 15.80, 160, 0, 18, true, 'https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=400'),
 ('Clindamycine 300mg', 3, 'Boîte de 16 gélules', 13.20, 140, 0, 16, true, 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400');
+
+
+-- Données Dispensaires
+INSERT INTO DISPENSAIRE (CODE, NOM, CONTACT, ADRESSE_RUE, ADRESSE_CP, ADRESSE_VILLE) VALUES
+                                                                                         ('D01', 'Dispensaire du Centre', 'Dr. Martin', '12 rue de la Paix', '75001', 'Paris'),
+                                                                                         ('D02', 'Dispensaire Sud', 'Mme. Durand', '45 avenue du Soleil', '13008', 'Marseille');
+
+-- Données Commandes (Attention aux clés étrangères vers Dispensaire et Médicaments existants)
+-- Commande 1 pour Dispensaire D01, saisie le 10/01/2025
+INSERT INTO COMMANDE (NUMERO, SAISIELE, DISPENSAIRE_CODE, LIVRAISON_VILLE) VALUES
+    (1, '2025-01-10', 'D01', 'Paris');
+
+-- Lignes pour la commande 1 (Medicament ID 1 = Morphine, ID 2 = Doliprane)
+INSERT INTO LIGNE (ID, QUANTITE, MEDICAMENT_REFERENCE, COMMANDE_ID) VALUES
+                                                                        (1, 10, 1, 1),
+                                                                        (2, 50, 2, 1);
+
+-- Commande 2 pour Dispensaire D02, saisie le 20/02/2025
+INSERT INTO COMMANDE (NUMERO, SAISIELE, DISPENSAIRE_CODE, LIVRAISON_VILLE) VALUES
+    (2, '2025-02-20', 'D02', 'Marseille');
