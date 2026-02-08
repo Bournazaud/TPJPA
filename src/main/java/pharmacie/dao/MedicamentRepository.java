@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import org.springframework.data.jpa.repository.Query;
 import pharmacie.entity.Medicament;
 
 // Cette interface sera auto-implémentée par Spring
@@ -21,4 +22,9 @@ public interface MedicamentRepository extends JpaRepository<Medicament, Integer>
      * @return la liste des médicaments disponibles
      */
     List<Medicament> findByIndisponibleFalse();
+
+    // medicament diponibles pour une catégorie
+    // les critères : catégorie qui est donnée + pas disponible + stock >= Commandé
+    @Query("SELECT m FROM Medicament m WHERE m.categorie.code = :categorieCode AND m.indisponible = false AND m.unitesEnStock >= m.unitesCommandees")
+    List<Medicament> findMedicamentByCategorie(Integer categorieCode);
 }

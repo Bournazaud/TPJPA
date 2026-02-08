@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.dao.DataIntegrityViolationException;
 import pharmacie.entity.*;
 
 import java.time.LocalDate;
@@ -84,4 +85,85 @@ public class RepositoryCustomMethodsTest {
         assertEquals(1, dispensairesParis.size());
         assertEquals("Dispensaire du Centre", dispensairesParis.get(0).getNom());
     }
+
+    // --- TESTS DES CONTRAINTES ---
+
+    @Test
+    public void testIntegrityConstraints() {
+        // 1. On ne peut pas supprimer une catégorie qui a des médicaments
+        // La catégorie 1 (Antalgiques) a des médicaments dans data.sql
+        Categorie catAvecMeds = categorieRepository.findById(1).orElseThrow();
+
+        assertThrows(DataIntegrityViolationException.class, () -> {
+            categorieRepository.delete(catAvecMeds);
+            categorieRepository.flush(); // Force l'exécution SQL immédiate pour voir l'erreur
+        });
+
+        // 2. On peut supprimer une catégorie sans médicament
+        Categorie vide = new Categorie();
+        vide.setLibelle("Vide");
+        vide = categorieRepository.save(vide);
+
+        categorieRepository.delete(vide); // Ne doit pas planter
+        assertTrue(categorieRepository.findById(vide.getCode()).isEmpty());
+    }
+
+    @Test
+    public void testCascadeDispensaire() {
+        // 3. Quand on supprime un dispensaire, on supprime ses commandes
+        // Créons un dispensaire et une commande pour le test
+        Dispensaire d = new Dispensaire("D_TEST", "TestDisp");
+        d.setAdresse(new AdressePostale("Rue", "00000", "Ville"));
+        dispensaireRepository.save(d);
+
+        Commande c = new Commande();
+        c.setDispensaire(d);
+        c.setSaisiele(LocalDate.now());
+        c.setAdresseLivraison(d.getAdresse());
+        commandeRepository.save(c);
+
+        Integer idCommande = c.getNumero();
+        assertNotNull(commandeRepository.findById(idCommande).orElse(null));
+
+        // Suppression du dispensaire
+        dispensaireRepository.delete(d);
+
+        // La commande doit avoir disparu
+        assertTrue(commandeRepository.findById(idCommande).isEmpty());
+    }
+
+    // --- TESTS DES REQUETES ---
+
+    @Test
+    public void testNewQueries() {
+        // Utilisons les données de data.sql
+        // D01 a une commande (N°1) saisie le 10/01 mais pas de date d'envoi (donc "en cours")
+        // D02 a une commande (N°2) saisie le 20/02... (ajoutons une date d'envoi pour tester le count)
+
+        Commande c2 = commandeRepository.findById(2).orElseThrow();
+        c2.setEnvoyeele(LocalDate.now()); // On dit qu'elle est envoyée
+        // Ajoutons des lignes à la commande 2 pour avoir quelque chose à compter
+        Ligne l = new Ligne();
+        l.setQuantite(5);
+        l.setMedicament(medicamentRepository.findById(1).orElseThrow()); // Morphine
+        c2.getLignes().add(l);
+        commandeRepository.save(c2);
+
+        // Test : Commandes en cours pour D01
+        List<Commande> enCoursD01 = commandeRepository.findByDispensaireCodeAndEnvoyeeleIsNull("D01");
+        assertEquals(1, enCoursD01.size()); // La commande 1 est en cours
+
+        // Test : Commandes en cours pour D02 (La commande 2 est envoyée, donc 0 en cours)
+        List<Commande> enCoursD02 = commandeRepository.findByDispensaireCodeAndEnvoyeeleIsNull("D02");
+        assertEquals(0, enCoursD02.size());
+
+        // Test : Nombre d'articles envoyés pour D02
+        Long nbArticles = commandeRepository.countArticlesEnvoyesByDispensaire("D02");
+        assertEquals(5L, nbArticles); // La ligne qu'on vient d'ajouter
+    }
+
+
+
+
+
 }
